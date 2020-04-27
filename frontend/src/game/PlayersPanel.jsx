@@ -30,7 +30,7 @@ const PlayerTableHeader = () => (
     <th key="3">Player</th>
     <th key="4" className={columnVisibility("packs")}>Packs</th>
     <th key="5" className={columnVisibility("timer")}>Timer</th>
-    <th key="6" className={columnVisibility("trice")}>Trice</th>
+    <th key="6" className={columnVisibility("trice")}>Cockatrice</th>
     <th key="7" className={columnVisibility("mws")}>MWS</th>
   </tr>
 );
