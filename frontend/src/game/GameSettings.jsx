@@ -6,7 +6,7 @@ import {Checkbox} from "../utils";
 const GameSettings = () => (
   <div className='game-settings'>
     <fieldset className='fieldset'>
-      <legend className='legend game-legend'>Settings</legend>
+      <legend className='legend game-legend'><b>Settings</b></legend>
       <span>
         <Checkbox side="left" text="Show chat" link="chat" />
         {!App.state.isSealed &&
