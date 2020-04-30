@@ -31,11 +31,13 @@ module.exports = class Game extends Room {
 
     // Handle packsInfos to show various informations about the game
     switch(type) {
+    case "glimpse":
     case "draft":
     case "sealed":
       this.packsInfo = this.sets.join(" / ");
       this.rounds = this.sets.length;
       break;
+    case "cube glimpse":
     case "cube draft":
       this.packsInfo = `${cube.packs} packs with ${cube.cards} cards from a pool of ${cube.list.length} cards`;
       this.rounds = this.cube.packs;
@@ -44,6 +46,7 @@ module.exports = class Game extends Room {
       this.packsInfo = `${cube.cubePoolSize} cards per player from a pool of ${cube.list.length} cards`;
       this.rounds = this.cube.packs;
       break;
+    case "chaos glimpse":
     case "chaos draft":
     case "chaos sealed": {
       const chaosOptions = [];
@@ -153,13 +156,16 @@ module.exports = class Game extends Room {
 
   static mk_draft_fns(type) {
     switch(type) {
-      case "draft":
-      case "cube draft":
-      case "chaos draft":
-        return {
-          pick: Human._pick,
-          autopick: Human._autopick
-        };
+    case "draft":
+    case "cube draft":
+    case "chaos draft":
+    case "glimpse":
+    case "cube glimpse":
+    case "chaos glimpse":
+      return {
+        pick: Human._pick,
+        autopick: Human._autopick
+      };
     }
   }
 

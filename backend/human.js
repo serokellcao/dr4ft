@@ -22,9 +22,17 @@ module.exports = class extends Player {
 
     sock.mixin(this);
     sock.removeAllListeners("autopick");
-    sock.on("autopick", this.callbacks.autopick.bind(this));
+    try {
+      sock.on("autopick", this.callbacks.autopick.bind(this));
+    } catch {
+      sock.on("autopick", this.constructor._autopick.bind(this));
+    }
     sock.removeAllListeners("pick");
-    sock.on("pick", this.callbacks.pick.bind(this));
+    try {
+      sock.on("pick", this.callbacks.pick.bind(this));
+    } catch {
+      sock.on("pick", this.constructor._pick.bind(this));
+    }
     sock.removeAllListeners("hash");
     sock.on("hash", this._hash.bind(this));
     sock.once("exit", this._farewell.bind(this));
