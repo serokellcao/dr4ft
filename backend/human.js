@@ -5,13 +5,14 @@ const {random} = require("lodash");
 const logger = require("./logger");
 
 module.exports = class extends Player {
-  constructor(sock) {
+  constructor(sock, draft_fns) {
     super({
       isBot: false,
       isConnected: true,
       name: sock.name,
       id: sock.id
     });
+    this.callbacks = draft_fns;
     this.attach(sock);
   }
 
@@ -21,9 +22,9 @@ module.exports = class extends Player {
 
     sock.mixin(this);
     sock.removeAllListeners("autopick");
-    sock.on("autopick", this.constructor._autopick.bind(this));
+    sock.on("autopick", this.callbacks.autopick.bind(this));
     sock.removeAllListeners("pick");
-    sock.on("pick", this.constructor._pick.bind(this));
+    sock.on("pick", this.callbacks.pick.bind(this));
     sock.removeAllListeners("hash");
     sock.on("hash", this._hash.bind(this));
     sock.once("exit", this._farewell.bind(this));

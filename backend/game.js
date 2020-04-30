@@ -151,6 +151,18 @@ module.exports = class Game extends Room {
       }, []);
   }
 
+  static mk_draft_fns(type) {
+    switch(type) {
+      case "draft":
+      case "cube draft":
+      case "chaos draft":
+        return {
+          pick: Human._pick,
+          autopick: Human._autopick
+        };
+    }
+  }
+
   name(name, sock) {
     super.name(name, sock);
     sock.h.name = sock.name;
@@ -185,7 +197,7 @@ module.exports = class Game extends Room {
     super.join(sock);
     this.logger.debug(`${sock.name} joined the game`);
 
-    const h = new Human(sock);
+    const h = new Human(sock, this.constructor.mk_draft_fns(this.type));
     if (h.id === this.hostID) {
       h.isHost = true;
       sock.once("start", this.start.bind(this));
