@@ -21,9 +21,9 @@ module.exports = class extends Player {
 
     sock.mixin(this);
     sock.removeAllListeners("autopick");
-    sock.on("autopick", this._autopick.bind(this));
+    sock.on("autopick", this.constructor._autopick.bind(this));
     sock.removeAllListeners("pick");
-    sock.on("pick", this._pick.bind(this));
+    sock.on("pick", this.constructor._pick.bind(this));
     sock.removeAllListeners("hash");
     sock.on("hash", this._hash.bind(this));
     sock.once("exit", this._farewell.bind(this));
@@ -49,15 +49,15 @@ module.exports = class extends Player {
     this.send = () => {};
     this.emit("meta");
   }
-  _autopick(index) {
+  static _autopick(index) {
     let [pack] = this.packs;
     if (pack && index < pack.length)
       this.autopick_index = index;
   }
-  _pick(index) {
+  static _pick(index) {
     let [pack] = this.packs;
     if (pack && index < pack.length)
-      this.pick(index);
+      this.constructor.pick.apply(this, [index]);
   }
   getPack(pack) {
     if (this.packs.push(pack) === 1)
@@ -110,7 +110,7 @@ module.exports = class extends Player {
     let namePool = pool.map(card => card.name);
     this.draftStats.push( { picked, notPicked, pool: namePool } );
   }
-  pick(index) {
+  static pick(index) {
     const pack = this.packs.shift();
     const card = pack.splice(index, 1)[0];
 
@@ -134,7 +134,7 @@ module.exports = class extends Player {
     this.autopick_index = -1;
     this.emit("pass", pack);
   }
-  pickOnTimeout() {
+  static pickOnTimeout() {
     let index = this.autopick_index;
     if (index === -1)
       index = random(this.packs[0].length - 1);
