@@ -12,7 +12,14 @@ module.exports = class extends Player {
       name: sock.name,
       id: sock.id
     });
-    this.callbacks = draft_fns;
+    this.callbacks = Object.assign(
+      {},
+      {
+        autopick: this.constructor._autopick,
+        pick: this.constructor._pick,
+      },
+      draft_fns
+    );
     this.attach(sock);
   }
 
@@ -22,17 +29,9 @@ module.exports = class extends Player {
 
     sock.mixin(this);
     sock.removeAllListeners("autopick");
-    try {
-      sock.on("autopick", this.callbacks.autopick.bind(this));
-    } catch {
-      sock.on("autopick", this.constructor._autopick.bind(this));
-    }
+    sock.on("autopick", this.callbacks.autopick.bind(this));
     sock.removeAllListeners("pick");
-    try {
-      sock.on("pick", this.callbacks.pick.bind(this));
-    } catch {
-      sock.on("pick", this.constructor._pick.bind(this));
-    }
+    sock.on("pick", this.callbacks.pick.bind(this));
     sock.removeAllListeners("hash");
     sock.on("hash", this._hash.bind(this));
     sock.once("exit", this._farewell.bind(this));
@@ -58,10 +57,13 @@ module.exports = class extends Player {
     this.send = () => {};
     this.emit("meta");
   }
+  static _autoglimpse(indexes) {
+    throw "Not implemented";
+  }
   static _autopick(index) {
     let [pack] = this.packs;
     if (pack && index < pack.length)
-      this.autopick_index = index;
+      this.autopick_indexes = [index];
   }
   static _pick(index) {
     let [pack] = this.packs;
@@ -140,14 +142,18 @@ module.exports = class extends Player {
     else
       this.sendPack(next);
 
-    this.autopick_index = -1;
+    this.autopick_indexes = [-1];
     this.emit("pass", pack);
   }
-  static pickOnTimeout() {
-    let index = this.autopick_index;
-    if (index === -1)
-      index = random(this.packs[0].length - 1);
-    this.pick(index);
+  pickOnTimeout() {
+    this.callbacks.pick.apply(this, [(
+      this.autopick_indexes.map((index) => {
+        if (index === -1)
+          return random(this.packs[0].length - 1);
+        else
+          return index;
+      })
+    )]);
   }
   kick() {
     this.send = () => {};
