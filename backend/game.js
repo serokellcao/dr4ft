@@ -360,7 +360,7 @@ module.exports = class Game extends Room {
     this.renew();
     this.round = -1;
     this.meta({ round: -1 });
-    if (["cube draft", "draft"].includes(this.type)) {
+    if (["cube glimpse", "glimpse", "cube draft", "draft"].includes(this.type)) {
       this.uploadDraftStats();
     }
   }

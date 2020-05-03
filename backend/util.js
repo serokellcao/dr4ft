@@ -21,7 +21,7 @@ function controlCubeSettingsAndTransformList(cube, seats, type) {
 
   list = list.split("\n");
 
-  const min = type === "cube draft"
+  const min = (type === "cube draft" || type === "cube glimpse")
     ? seats * cards * packs
     : seats * cubePoolSize;
   assert(min <= list.length && list.length <= 1e5,
@@ -89,6 +89,7 @@ module.exports = {
     switch (type) {
     case "draft":
     case "sealed":
+    case "glimpse":
       assert(Array.isArray(sets), "sets must be an array");
       assert(sets.length >= 1, "sets length must be at least 1");
       sets.forEach(set =>
@@ -96,11 +97,13 @@ module.exports = {
       break;
     case "cube draft":
     case "cube sealed":
+    case "cube glimpse":
       assert(typeof cube === "object", "cube must be an object");
       controlCubeSettingsAndTransformList(cube, seats, type);
       break;
     case "chaos draft":
     case "chaos sealed":
+    case "chaos glimpse":
       assert(typeof modernOnly === "boolean", "modernOnly must be a boolean");
       assert(typeof totalChaos === "boolean", "totalChaos must be a boolean");
       assert(typeof chaosPacksNumber === "number", "chaosPacksNumber must be a number");
