@@ -159,12 +159,18 @@ module.exports = class Game extends Room {
     case "draft":
     case "cube draft":
     case "chaos draft":
+      return {
+        pick: Human._pick,
+        autopick: Human._autopick,
+        default_pick_indexes: () => [ null ],
+      };
     case "glimpse":
     case "cube glimpse":
     case "chaos glimpse":
       return {
-        pick: Human._pick,
-        autopick: Human._autopick
+        pick: Human._glimpse,
+        autopick: Human._autoglimpse,
+        default_pick_indexes: () => [ null, null, null ],
       };
     }
   }
@@ -360,6 +366,16 @@ module.exports = class Game extends Room {
   }
 
   pass(p, pack) {
+    if (pack.length) {
+      let l = pack.length - 1;
+      this.logger.debug(
+        `${p.name} passes ${pack[l].name} and ${l} other cards`
+      );
+    } else {
+      this.logger.debug(
+        `${p.name} passes an empty pack`
+      );
+    }
     if (!pack.length) {
       if (!--this.packCount)
         this.startRound();
@@ -368,12 +384,20 @@ module.exports = class Game extends Room {
       return;
     }
 
-    const index = this.players.indexOf(p) + this.delta;
-    const nextPlayer = this.getNextPlayer(index);
+    const nextIndex = this.players.indexOf(p) + this.delta;
+    const nextPlayer = this.getNextPlayer(nextIndex);
     nextPlayer.getPack(pack);
-    if (!nextPlayer.isBot) {
-      this.meta();
+    this.meta();
+  }
+
+  keep(p, pack) {
+    if (!pack.length) {
+      if (!--this.packCount)
+        return this.startRound();
+      else
+        return this.meta();
     }
+    this.meta();
   }
 
   startRound() {
@@ -451,6 +475,7 @@ module.exports = class Game extends Room {
 
   createPool() {
     switch (this.type) {
+    case "cube glimpse":
     case "cube draft": {
       this.pool = Pool.DraftCube({
         cubeList: this.cube.list,
@@ -468,6 +493,7 @@ module.exports = class Game extends Room {
       });
       break;
     }
+    case "glimpse":
     case "draft": {
       this.pool = Pool.DraftNormal({
         playersLength: this.players.length,
@@ -482,6 +508,7 @@ module.exports = class Game extends Room {
       });
       break;
     }
+    case "chaos glimpse":
     case "chaos draft": {
       this.pool = Pool.DraftChaos({
         playersLength: this.players.length,
@@ -521,6 +548,7 @@ module.exports = class Game extends Room {
       p.timerLength = timerLength;
       p.self = self;
       p.on("pass", this.pass.bind(this, p));
+      p.on("keep", this.keep.bind(this, p));
       p.send("set", { self });
     });
 

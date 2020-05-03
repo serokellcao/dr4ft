@@ -12,14 +12,17 @@ module.exports = class extends Player {
       name: sock.name,
       id: sock.id
     });
-    this.callbacks = Object.assign(
+    let callbacks = Object.assign(
       {},
       {
         autopick: this.constructor._autopick,
         pick: this.constructor._pick,
+        default_pick_indexes: () => [ null ],
       },
       draft_fns
     );
+    this.callbacks = callbacks;
+    this.autopick_indexes = callbacks.default_pick_indexes();
     this.attach(sock);
   }
 
@@ -57,18 +60,25 @@ module.exports = class extends Player {
     this.send = () => {};
     this.emit("meta");
   }
-  static _autoglimpse(indexes) {
-    throw "Not implemented";
-  }
   static _autopick(index) {
     let [pack] = this.packs;
     if (pack && index < pack.length)
       this.autopick_indexes = [index];
   }
+  static _autoglimpse(index) {
+    let [pack] = this.packs;
+    if (pack && index < pack.length)
+      this.autopick_indexes[0] = index;
+  }
   static _pick(index) {
     let [pack] = this.packs;
     if (pack && index < pack.length)
       this.constructor.pick.apply(this, [index]);
+  }
+  static _glimpse(index) {
+    let [pack] = this.packs;
+    if (pack && index < pack.length)
+      this.constructor.glimpse.apply(this, [index]);
   }
   getPack(pack) {
     if (this.packs.push(pack) === 1)
@@ -142,18 +152,107 @@ module.exports = class extends Player {
     else
       this.sendPack(next);
 
-    this.autopick_indexes = [-1];
+    this.autopick_indexes = this.callbacks.default_pick_indexes();
     this.emit("pass", pack);
   }
-  pickOnTimeout() {
-    this.callbacks.pick.apply(this, [(
-      this.autopick_indexes.map((index) => {
-        if (index === -1)
-          return random(this.packs[0].length - 1);
+  static glimpse(index) {
+
+    const log_pick = (card, pack) => {
+      this.draftLog.pack.push(
+        [`--> ${card.name}`].concat(
+          pack.map(x => `    ${x.name}`)
+        )
+      );
+      this.updateDraftStats(
+        this.draftLog.pack[ this.draftLog.pack.length-1 ],
+        this.pool
+      );
+    };
+
+    const add_to_pool_do = (card) => {
+      let foil_name_maybe = card.name;
+      if (card.foil === true)
+        foil_name_maybe = "*" + foil_name_maybe + "*";
+      this.pool.push(card);
+      this.picks.push(foil_name_maybe);
+      this.send("add", card);
+    };
+
+    const add_to_pool = (index) => {
+      const pack = this.packs[0];
+      const card = pack.splice(index, 1)[0];
+      logger.debug(`${this.name} picks ${card.name}`);
+      log_pick(card, pack);
+      add_to_pool_do(card);
+    };
+
+    const burn_a_card = (index) => {
+      const pack = this.packs[0];
+      const card = pack.splice(index, 1)[0];
+      logger.debug(`${this.name} burns ${card.name}`);
+      log_pick(card, pack);
+    };
+
+    const keep_the_pack = () => {
+      const pack = this.packs[0];
+      if (!pack)
+        this.time = 0;
+      else
+        this.sendPack(pack);
+      this.autopick_indexes.splice(0, 1);
+      logger.debug(`${this.name} keeps ${pack.length} card(s)`);
+      this.emit("keep", pack);
+      return Symbol("ok");
+    };
+
+    const send_next_pack_to_frontend_maybe = () => {
+      let [next] = this.packs;
+      if (!next)
+        this.time = 0;
+      else
+        this.sendPack(next);
+      return Symbol("ok");
+    };
+
+    const pass_the_pack = () => {
+      const pack = this.packs.shift();
+      this.autopick_indexes = this.callbacks.default_pick_indexes();
+      logger.debug(`${this.name} passes ${pack.length} card(s)`);
+      send_next_pack_to_frontend_maybe();
+      this.emit("pass", pack);
+      return Symbol("ok");
+    };
+
+    const glimpse_do = () => {
+      const pack = this.packs[0];
+      const indexes = this.autopick_indexes;
+      if (indexes.length === this.callbacks.default_pick_indexes().length) {
+        add_to_pool(index);
+        if (pack.length === 0)
+          return pass_the_pack();
         else
-          return index;
-      })
-    )]);
+          return keep_the_pack();
+      } else if (indexes.length === 1) {
+        burn_a_card(index);
+        return pass_the_pack();
+      } else {
+        burn_a_card(index);
+        if (pack.length === 0)
+          return pass_the_pack();
+        else
+          return keep_the_pack();
+      }
+    };
+
+    return glimpse_do();
+
+  }
+  pickOnTimeout() {
+    if (this.autopick_indexes[0] === null) {
+      this.callbacks.pick.apply(this, [random(this.packs[0].length - 1)]);
+    } else {
+      this.callbacks.pick.apply(this, [this.autopick_indexes[0]]);
+    }
   }
   kick() {
     this.send = () => {};
