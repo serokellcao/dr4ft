@@ -562,7 +562,7 @@ module.exports = class Game extends Room {
 
       if (addBots) {
         while (this.players.length < this.seats) {
-          this.players.push(new Bot());
+          this.players.push(new Bot(this.constructor.mk_draft_fns(this.type)));
           this.bots++;
         }
       }

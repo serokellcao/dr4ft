@@ -5,7 +5,7 @@ const {random} = require("lodash");
 const logger = require("./logger");
 
 module.exports = class extends Player {
-  constructor(sock, draft_fns) {
+  constructor(sock, draft_fns = {}) {
     super({
       isBot: false,
       isConnected: true,
