@@ -160,16 +160,12 @@ module.exports = class Game extends Room {
     case "cube draft":
     case "chaos draft":
       return {
-        pick: Human._pick,
-        autopick: Human._autopick,
         default_pick_indexes: () => [ null ],
       };
     case "glimpse":
     case "cube glimpse":
     case "chaos glimpse":
       return {
-        pick: Human._glimpse,
-        autopick: Human._autoglimpse,
         default_pick_indexes: () => [ null, null, null ],
       };
     }
@@ -366,16 +362,6 @@ module.exports = class Game extends Room {
   }
 
   pass(p, pack) {
-    if (pack.length) {
-      let l = pack.length - 1;
-      this.logger.debug(
-        `${p.name} passes ${pack[l].name} and ${l} other cards`
-      );
-    } else {
-      this.logger.debug(
-        `${p.name} passes an empty pack`
-      );
-    }
     if (!pack.length) {
       if (!--this.packCount)
         this.startRound();
@@ -387,7 +373,8 @@ module.exports = class Game extends Room {
     const nextIndex = this.players.indexOf(p) + this.delta;
     const nextPlayer = this.getNextPlayer(nextIndex);
     nextPlayer.getPack(pack);
-    this.meta();
+    if (!nextPlayer.isBot)
+      this.meta();
   }
 
   keep(p, pack) {
@@ -397,7 +384,11 @@ module.exports = class Game extends Room {
       else
         return this.meta();
     }
-    this.meta();
+
+    const nextIndex = this.players.indexOf(p) + this.delta;
+    const nextPlayer = this.getNextPlayer(nextIndex);
+    if (!nextPlayer.isBot)
+      this.meta();
   }
 
   startRound() {

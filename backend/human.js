@@ -63,22 +63,12 @@ module.exports = class extends Player {
   static _autopick(index) {
     let [pack] = this.packs;
     if (pack && index < pack.length)
-      this.autopick_indexes = [index];
-  }
-  static _autoglimpse(index) {
-    let [pack] = this.packs;
-    if (pack && index < pack.length)
       this.autopick_indexes[0] = index;
   }
   static _pick(index) {
     let [pack] = this.packs;
     if (pack && index < pack.length)
       this.constructor.pick.apply(this, [index]);
-  }
-  static _glimpse(index) {
-    let [pack] = this.packs;
-    if (pack && index < pack.length)
-      this.constructor.glimpse.apply(this, [index]);
   }
   getPack(pack) {
     if (this.packs.push(pack) === 1)
@@ -132,30 +122,6 @@ module.exports = class extends Player {
     this.draftStats.push( { picked, notPicked, pool: namePool } );
   }
   static pick(index) {
-    const pack = this.packs.shift();
-    const card = pack.splice(index, 1)[0];
-
-    this.draftLog.pack.push( [`--> ${card.name}`].concat(pack.map(x => `    ${x.name}`)) );
-    this.updateDraftStats(this.draftLog.pack[ this.draftLog.pack.length-1 ], this.pool);
-
-    let pickcard = card.name;
-    if (card.foil === true)
-      pickcard = "*" + pickcard + "*";
-
-    this.pool.push(card);
-    this.picks.push(pickcard);
-    this.send("add", card);
-
-    let [next] = this.packs;
-    if (!next)
-      this.time = 0;
-    else
-      this.sendPack(next);
-
-    this.autopick_indexes = this.callbacks.default_pick_indexes();
-    this.emit("pass", pack);
-  }
-  static glimpse(index) {
 
     const log_pick = (card, pack) => {
       this.draftLog.pack.push(
@@ -169,7 +135,7 @@ module.exports = class extends Player {
       );
     };
 
-    const add_to_pool_do = (card) => {
+    const pick_a_card_do = (card) => {
       let foil_name_maybe = card.name;
       if (card.foil === true)
         foil_name_maybe = "*" + foil_name_maybe + "*";
@@ -178,18 +144,16 @@ module.exports = class extends Player {
       this.send("add", card);
     };
 
-    const add_to_pool = (index) => {
+    const pick_a_card = (index) => {
       const pack = this.packs[0];
       const card = pack.splice(index, 1)[0];
-      logger.debug(`${this.name} picks ${card.name}`);
       log_pick(card, pack);
-      add_to_pool_do(card);
+      pick_a_card_do(card);
     };
 
     const burn_a_card = (index) => {
       const pack = this.packs[0];
       const card = pack.splice(index, 1)[0];
-      logger.debug(`${this.name} burns ${card.name}`);
       log_pick(card, pack);
     };
 
@@ -200,7 +164,6 @@ module.exports = class extends Player {
       else
         this.sendPack(pack);
       this.autopick_indexes.splice(0, 1);
-      logger.debug(`${this.name} keeps ${pack.length} card(s)`);
       this.emit("keep", pack);
       return Symbol("ok");
     };
@@ -217,18 +180,22 @@ module.exports = class extends Player {
     const pass_the_pack = () => {
       const pack = this.packs.shift();
       this.autopick_indexes = this.callbacks.default_pick_indexes();
-      logger.debug(`${this.name} passes ${pack.length} card(s)`);
       send_next_pack_to_frontend_maybe();
       this.emit("pass", pack);
       return Symbol("ok");
     };
 
-    const glimpse_do = () => {
+    const end_round = pass_the_pack;
+
+    const pick_do = () => {
       const pack = this.packs[0];
       const indexes = this.autopick_indexes;
-      if (indexes.length === this.callbacks.default_pick_indexes().length) {
-        add_to_pool(index);
+      const picks_total = this.callbacks.default_pick_indexes().length;
+      if (indexes.length === picks_total) {
+        pick_a_card(index);
         if (pack.length === 0)
+          return end_round();
+        else if (picks_total === 1)
           return pass_the_pack();
         else
           return keep_the_pack();
@@ -244,7 +211,7 @@ module.exports = class extends Player {
       }
     };
 
-    return glimpse_do();
+    return pick_do();
 
   }
   pickOnTimeout() {

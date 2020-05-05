@@ -17,18 +17,14 @@ module.exports = class extends Player {
   }
 
   getPack(pack) {
-    logger.debug(`Bot's autopick_indexes are ${this.autopick_indexes}`);
     const randomPick = sample(pack);
     this.picks.push(randomPick.name);
-    logger.debug(`Bot picks or burns ${randomPick.name}`);
     pull(pack, randomPick);
     if (this.autopick_indexes.length === 1) {
       this.autopick_indexes = this.callbacks.default_pick_indexes();
-      logger.debug(`Bot passes`);
       this.emit("pass", pack);
     } else {
       this.autopick_indexes.splice(0, 1);
-      logger.debug(`Bot keeps going`);
       this.getPack(pack);
     }
   }
